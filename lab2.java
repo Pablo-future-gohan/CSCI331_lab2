@@ -18,8 +18,8 @@ public class lab2 {
         ArrayList<String> variables = new ArrayList<String>();
         ArrayList<String> constants = new ArrayList<String>();
         ArrayList<String> functions = new ArrayList<String>();
-        ArrayList<Clause> clauses = new ArrayList<Clause>();
-        Set<Clause> clauseSet = new HashSet<Clause>();
+        ArrayList<Clause> clauses = new ArrayList<Clause>(); //list of every clause. allows repeats
+        Set<Clause> clauseSet = new HashSet<Clause>(); //each individual clause
 
 
         //reads arguments and puts everything into a list
@@ -27,47 +27,47 @@ public class lab2 {
             String line;
             while ((line = br.readLine()) != null) {
                 String lower = line.toLowerCase();
-                if(lower.contains("predicates")){
+                if (lower.contains("predicates")) {
                     String[] temp = line.trim().split("\\s+");
-                    for(String s : temp){
+                    for (String s : temp) {
                         predicates.add(s);
                     }
                     predicates.remove(0);
                 }
-                if(lower.contains("variables")){
+                if (lower.contains("variables")) {
                     String[] temp = line.trim().split("\\s+");
-                    for(String s : temp){
+                    for (String s : temp) {
                         variables.add(s);
                     }
                     variables.remove(0);
                 }
 
-                if(lower.contains("constants")){
+                if (lower.contains("constants")) {
                     String[] temp = line.trim().split("\\s+");
-                    for(String s : temp){
+                    for (String s : temp) {
                         constants.add(s);
                     }
                     constants.remove(0);
                 }
 
-                if(lower.contains("functions")){
+                if (lower.contains("functions")) {
                     String[] temp = line.trim().split("\\s+");
-                    for(String s : temp){
+                    for (String s : temp) {
                         functions.add(s);
                     }
                     functions.remove(0);
                 }
 
                 //turns every line into a clause object
-                if(lower.contains("clauses")) {
+                if (lower.contains("clauses")) {
                     while ((line = br.readLine()) != null) {
                         String[] temp = line.trim().split("\\s+");
                         Set<Literal> literals = new HashSet<>();
-                        for(String s : temp){
+                        for (String s : temp) {
                             Literal l;
-                            if(s.contains("!")){
+                            if (s.contains("!")) {
                                 l = new Literal(s.substring(1), true);
-                            } else{
+                            } else {
                                 l = new Literal(s, false);
                             }
                             literals.add(l);
@@ -76,13 +76,22 @@ public class lab2 {
                     }
                 }
 
-                for(Clause clause : clauses){
+                for (Clause clause : clauses) {
                     clauseSet.add(clause);
                 }
 
             }
 
+//            System.out.println(predicates);
+//            System.out.println(constants);
+//            System.out.println(variables);
+//            System.out.println(functions);
+            System.out.println(clauses);
 
+
+
+            //this resolves each clause to see if the KB is satisfieble or not.
+            // Loops until the empty set is found or nothing new can be created
             while(true) {
                 ArrayList<Clause> newClauses = new ArrayList<>();
                 //loop that resolves each clause
@@ -90,9 +99,13 @@ public class lab2 {
                     for (int j = i+1; j < clauses.size(); j++) {
                         ArrayList<Clause> c = resolve(clauses.get(i), clauses.get(j));
                         for (Clause r : c) {
+
+                            //empty set
                             if (r.isEmpty()) {
                                 System.out.println("no");
                                 return;
+
+                                //if clause hasnt been found before it gets added
                             } else {
                                 for (Clause c1 : c) {
                                     if (!clauseSet.contains(c1)) {
@@ -104,9 +117,13 @@ public class lab2 {
                         }
                     }
                 }
+
+                //stops program if no new clauses are made
                 if (newClauses.isEmpty()) {
                     System.out.println("yes");
                     return;
+
+                    //addes eevry new clause to the clauses list
                 } else{
                     for (Clause c : newClauses) {
                         clauses.add(c);
@@ -115,11 +132,6 @@ public class lab2 {
             }
 
 
-//            System.out.println(predicates);
-//            System.out.println(constants);
-//            System.out.println(variables);
-//            System.out.println(functions);
-//            System.out.println(clauses);
 
 
         } catch(IOException e) {
@@ -211,10 +223,19 @@ class Literal{
             return false;
         }
     }
+
+
+    @Override
+    public String toString(){
+        if(isNegative){
+            return "!"+predicateName;
+        }
+        return predicateName;
+    }
 }
 
 
-
+//makes a clause object
 class Clause{
     final Set<Literal> literalSet; //a set of each literal
 
@@ -254,6 +275,11 @@ class Clause{
     @Override
     public int hashCode(){
         return Objects.hash(literalSet);
+    }
+
+    @Override
+    public String toString(){
+        return literalSet.toString();
     }
 }
 
