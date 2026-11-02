@@ -7,10 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import static java.lang.System.in;
 
@@ -22,6 +19,7 @@ public class lab2 {
         ArrayList<String> constants = new ArrayList<String>();
         ArrayList<String> functions = new ArrayList<String>();
         ArrayList<Clause> clauses = new ArrayList<Clause>();
+        Set<Clause> clauseSet = new HashSet<Clause>();
 
 
         //reads arguments and puts everything into a list
@@ -60,6 +58,7 @@ public class lab2 {
                     functions.remove(0);
                 }
 
+                //turns every line into a clause object
                 if(lower.contains("clauses")) {
                     while ((line = br.readLine()) != null) {
                         String[] temp = line.trim().split("\\s+");
@@ -74,18 +73,53 @@ public class lab2 {
                             literals.add(l);
                         }
                         clauses.add(new Clause(literals));
-
-
                     }
+                }
+
+                for(Clause clause : clauses){
+                    clauseSet.add(clause);
                 }
 
             }
 
-            System.out.println(predicates);
-            System.out.println(constants);
-            System.out.println(variables);
-            System.out.println(functions);
-            System.out.println(clauses);
+
+            while(true) {
+                ArrayList<Clause> newClauses = new ArrayList<>();
+                //loop that resolves each clause
+                for (int i = 0; i < clauses.size() - 1; i++) {
+                    for (int j = i+1; j < clauses.size(); j++) {
+                        ArrayList<Clause> c = resolve(clauses.get(i), clauses.get(j));
+                        for (Clause r : c) {
+                            if (r.isEmpty()) {
+                                System.out.println("no");
+                                return;
+                            } else {
+                                for (Clause c1 : c) {
+                                    if (!clauseSet.contains(c1)) {
+                                        clauseSet.add(c1);
+                                        newClauses.add(c1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (newClauses.isEmpty()) {
+                    System.out.println("yes");
+                    return;
+                } else{
+                    for (Clause c : newClauses) {
+                        clauses.add(c);
+                    }
+                }
+            }
+
+
+//            System.out.println(predicates);
+//            System.out.println(constants);
+//            System.out.println(variables);
+//            System.out.println(functions);
+//            System.out.println(clauses);
 
 
         } catch(IOException e) {
@@ -108,6 +142,8 @@ public class lab2 {
 
         ArrayList<Clause> clauses = new ArrayList<>();
 
+        //checks if the negation of each literal in c1 is in c2
+        //and adds a new clause to clauses each time
         for( Literal l : c1.literalSet){
             Literal nl = l.negate();
             if(c2.literalSet.contains(nl)){
@@ -123,6 +159,7 @@ public class lab2 {
                     }
                 }
 
+                //ignores tauatololgy because they arent helpful and it speeds up computer
                 Clause c3 = new Clause(literalSet);
                 if(!c3.isTautology()){
                     clauses.add(c3);
