@@ -8,8 +8,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.lang.System.in;
 
 public class lab2 {
     public static void main(String[] args) {
@@ -18,7 +21,7 @@ public class lab2 {
         ArrayList<String> variables = new ArrayList<String>();
         ArrayList<String> constants = new ArrayList<String>();
         ArrayList<String> functions = new ArrayList<String>();
-        ArrayList<String> clauses = new ArrayList<String>();
+        ArrayList<Clause> clauses = new ArrayList<Clause>();
 
 
         //reads arguments and puts everything into a list
@@ -59,7 +62,20 @@ public class lab2 {
 
                 if(lower.contains("clauses")) {
                     while ((line = br.readLine()) != null) {
-                        clauses.add(line);
+                        String[] temp = line.trim().split("\\s+");
+                        Set<Literal> literals = new HashSet<>();
+                        for(String s : temp){
+                            Literal l;
+                            if(s.contains("!")){
+                                l = new Literal(s.substring(1), true);
+                            } else{
+                                l = new Literal(s, false);
+                            }
+                            literals.add(l);
+                        }
+                        clauses.add(new Clause(literals));
+
+
                     }
                 }
 
@@ -80,8 +96,48 @@ public class lab2 {
 
 
 
+
+    }
+
+
+    /// resoves two clauses
+    /// @param c1: clause 1
+    /// @param c2: clause 2
+    /// @reutnr arrayList of each new clause made
+    public static ArrayList<Clause> resolve(Clause c1, Clause c2) {
+
+        ArrayList<Clause> clauses = new ArrayList<>();
+
+        for( Literal l : c1.literalSet){
+            Literal nl = l.negate();
+            if(c2.literalSet.contains(nl)){
+                Set<Literal> literalSet = new HashSet<>();
+                for(Literal i :c1.literalSet){
+                    if(!i.equals(l)) {
+                        literalSet.add(i);
+                    }
+                }
+                for(Literal i :c2.literalSet){
+                    if(!i.equals(nl)) {
+                        literalSet.add(i);
+                    }
+                }
+
+                Clause c3 = new Clause(literalSet);
+                if(!c3.isTautology()){
+                    clauses.add(c3);
+                }
+
+            }
+        }
+
+
+        return clauses;
     }
 }
+
+
+
 
 //this class is to turn every string literal into an object
 class Literal{
@@ -141,7 +197,7 @@ class Clause{
             }
         }
 
-        return falswe;
+        return false;
     }
 
 
