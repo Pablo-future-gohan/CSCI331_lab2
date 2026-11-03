@@ -86,7 +86,7 @@ public class lab2 {
 //            System.out.println(constants);
 //            System.out.println(variables);
 //            System.out.println(functions);
-            System.out.println(clauses);
+//            System.out.println(clauses);
 
 
 
@@ -191,7 +191,8 @@ public class lab2 {
 //this class is to turn every string literal into an object
 class Literal{
     final boolean isNegative; //whether or not hte predicate is negated
-    final String predicateName; //name of the predicat4e
+    final String predicateName;//name of the predicat4e
+
 
 
     //makes a literal object
@@ -283,3 +284,52 @@ class Clause{
     }
 }
 
+//this class is for stuff inside predicates like variables and constants
+class Term{
+    final String name; //term name
+    final boolean isVariable; //if term is variable
+    final boolean isFunction; //if term is func
+    final boolean isConstant; //if term is constant
+    final List<Term> functionArgs; //list of terms in a function (eg friends(kim, doug))
+
+
+    //makes a term object
+    Term(String name, boolean isVariable, boolean isFunction, boolean isConstant,  List<Term> functionArgs){
+        this.name = name;
+        this.isVariable = isVariable;
+        this.isFunction = isFunction;
+        this.isConstant = isConstant;
+        this.functionArgs = new ArrayList<>(functionArgs);
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(!(o instanceof Term)){
+            return false;
+        }
+        Term other = (Term) o;
+        if(other.name.equals(this.name)
+                && other.isVariable == this.isVariable
+                && other.isFunction == this.isFunction
+                && other.isConstant == this.isConstant
+                && other.functionArgs.equals(this.functionArgs)){
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    @Override
+    public String toString() {
+        return "(name: "+ name + ") (isVariable: " + isVariable + ") (isConstant: " + isConstant + ") (isFunction: " + isFunction + ") (functionArgs:" + functionArgs +")";
+    }
+
+
+    @Override
+    public int hashCode() {
+        return name.hashCode() + Boolean.hashCode(isVariable) + Boolean.hashCode(isFunction) + Boolean.hashCode(isConstant) + functionArgs.hashCode();
+    }
+}
