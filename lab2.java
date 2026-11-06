@@ -211,6 +211,143 @@ public class lab2 {
 
 
 
+
+
+    ///this binds two terms that can be binedd like a constant with a variable
+    /// @param t1: term 1
+    /// @param t2: term 2
+    /// @return: a map where the two terms are binded together
+    public static Map<Term, Term> binder(Term t1, Term t2, Map<Term, Term> substitutionMap){
+        Map<Term, Term> binder = new HashMap<>(substitutionMap);
+
+        //follows a chain of bindings for both terms
+        while(t1.isVariable && substitutionMap.containsKey(t1)){
+            t1=substitutionMap.get(t1);
+        }
+        while(t2.isVariable && substitutionMap.containsKey(t2)){
+            t2=substitutionMap.get(t2);
+        }
+
+        //both are the same
+        if(t1.equals(t2)){
+            return binder;
+        }
+
+        //both are variables
+        if(t1.isVariable && t2.isVariable){
+            if(binder.containsKey(t1) && Objects.equals(binder.get(t1), t2)){
+                return null;
+            }
+            binder.put(t1, t2);
+        }
+
+        //variable against something
+        else if((t1.isVariable && !t2.isVariable) || (t2.isVariable && !t1.isVariable)){
+            if(binder.containsKey(t1) && Objects.equals(binder.get(t1), t2)){
+                return null;
+            }
+
+            if(t1.isVariable) {
+                binder.put(t1, t2);
+
+                //used so that if you bind a variable to a variable then rebind it you dont get an infinite loop
+                if(t2.isFunction){
+                    for(Term arg: t2.functionArgs){
+                        while(arg.isVariable && substitutionMap.containsKey(arg)){
+                            arg=substitutionMap.get(arg);
+                        }
+                        if(arg.equals(t1)){
+                            return null;
+                        }
+                    }
+                }
+
+            } else{
+                binder.put(t2, t1);
+
+                //used so that if you bind a variable to a variable then rebind it you dont get an infinite loop
+                if(t1.isFunction){
+                    for(Term arg: t1.functionArgs){
+                        while(arg.isVariable && substitutionMap.containsKey(arg)){
+                            arg=substitutionMap.get(arg);
+                        }
+                        if(arg.equals(t2)){
+                            return null;
+                        }
+                    }
+                }
+
+            }
+        }
+
+        //can't bind a constant to a constant
+        else if(t1.isConstant && t2.isConstant){
+            return null;
+        }
+
+        //cant bind a constant to a function
+        else if((t1.isConstant && t2.isFunction) || (t1.isFunction && t2.isConstant)){
+            return null;
+        }
+
+        //two functions
+        else if(t1.isFunction && t2.isFunction){
+            if((!t1.name.equals(t2.name)) || (t1.functionArgs.size() != t2.functionArgs.size())){
+                return null;
+            } else {
+                for(int i = 0; i < t1.functionArgs.size(); i++){
+                    binder = binder(t1.functionArgs.get(i), t2.functionArgs.get(i), binder);
+                    if(binder == null){
+                        return null;
+                    }
+                }
+            }
+        }
+
+
+        return binder;
+    }
+
+
+
+    /// unifies two lietrals together
+    /// @param l1: literal 1
+    /// @param l2: literal 2
+    /// @reutnr: a map with the literals paired up
+    public static Map<Term, Term> literalUnifier(Literal l1, Literal l2){
+        Map<Term, Term> literalMap = new HashMap<>();
+
+        //different names
+        if(!l1.predicateName.equals(l2.predicateName)){
+           return null;
+        }
+
+        //different signs
+        else if((l1.isNegative==l2.isNegative)){
+            return null;
+        }
+
+        //different number of terms
+        else if(l1.terms.size() != l2.terms.size()){
+            return null;
+        }
+
+        //unifies each term in both literals
+        else{
+            for(int i = 0; i < l1.terms.size(); i++){
+                literalMap = binder(l1.terms.get(i), l2.terms.get(i), literalMap);
+                if(literalMap == null){
+                    return null;
+                }
+            }
+        }
+
+        return literalMap;
+    }
+
+
+
+
     /// this function takes a clause and splits along it's commas so that
     /// something like loves(SKF0(x2),x2) has each part as it's own thing
     /// //or just splits up a literal like dog(x) into each component
