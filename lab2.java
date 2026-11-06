@@ -183,7 +183,97 @@ public class lab2 {
 
         return clauses;
     }
-}
+
+
+
+    /*
+    /// takes a clause and turns each item into a list of terms
+    ///@param cl: clause to parse
+    ///@return a list of each term
+    public List<Term> clauseToTerm(Clause cl){
+        for( Literal l : cl.literalSet){
+            //String[] litStrings = l.toString().split(" ");
+            //String[] temp = line.trim().split("\\s+");
+
+            //checks if there's something like dog(x)
+            if(l.predicateName.contains("(")){
+
+            }
+
+        }
+
+        return null;
+    }
+    */
+
+
+
+    /// this function takes a clause and splits along it's commas so that
+    /// something like loves(SKF0(x2),x2) has each part as it's own thing
+    /// //or just splits up a literal like dog(x) into each component
+    /// @param s: the string from the input file that you want to split into terms and make into a literal
+    /// @return a list of strings of each component of the literal
+    public static List<String> splitter(String s){
+        List<String> result = new ArrayList<>();
+        int depth = 0; //used to see how deep a symbol is. Eg loves(SKF0(x2),x2)) the first x2 is depth of 2
+        String currentPiece="";
+
+        for(int i = 0; i < s.length(); i++){
+            if(s.charAt(i) == '('){
+                depth++;
+                currentPiece += s.charAt(i);
+            } else if(s.charAt(i) == ')'){
+                depth--;
+                currentPiece += s.charAt(i);
+            } else if(s.charAt(i) == ',' && depth==0){
+                result.add(currentPiece);
+                currentPiece="";
+            } else{
+                currentPiece += s.charAt(i);
+            }
+        }
+
+        result.add(currentPiece);
+        return result;
+    }
+
+
+    /// this function takes a string that was made with the splitter method and turns it into a term object
+    /// @param s: the string you want to make into a term
+    /// @param vars: list of every variable item
+    /// @param consts: list of every constant
+    /// @param funcs: list of every function
+    /// @return term
+    public static Term toTerm(String s, ArrayList<String> vars, ArrayList<String> consts, ArrayList<String> funcs){
+
+        //function term
+        if(s.contains("(")){
+            String funcName = s.substring(0, s.indexOf("("));
+            String funcInner = s.substring(s.indexOf("(") + 1, s.lastIndexOf(")"));
+            List<String> splitFunction = splitter(funcInner); //splits the inside of the function based on its terms
+            List<Term> terms = new ArrayList<>();
+
+            for(String str: splitFunction){
+                terms.add(toTerm(str, vars, consts, funcs));
+            }
+            return new Term(funcName, false, true, false, terms);
+        }
+
+        //varoable
+        else if(vars.contains(s)){
+            return new Term(s, true, false, false, new ArrayList<>());
+        }
+
+        //constant
+        else{
+            return new Term(s, false, false, true, new ArrayList<>());
+        }
+
+    }
+
+} //END OF MAIN METHOD/CLASS
+
+
 
 
 
@@ -192,23 +282,33 @@ public class lab2 {
 class Literal{
     final boolean isNegative; //whether or not hte predicate is negated
     final String predicateName;//name of the predicat4e
+    final List<Term> terms; //list of terms inside the literal
 
 
+    //makes a literal object WITH terms
+    Literal(String predicateName, boolean isNegative, List<Term> terms) {
+        this.isNegative = isNegative;
+        this.predicateName = predicateName;
+        this.terms = new ArrayList<>(terms);
+    }
 
-    //makes a literal object
+
+    //makes a literal object WITHOUT terms (used for prop and constant test cases
     Literal(String predicateName, boolean isNegative) {
         this.isNegative = isNegative;
         this.predicateName = predicateName;
+        this.terms=new ArrayList<>();
     }
+
 
     //makes a new literal objext but negated
     Literal negate(){
-        return new Literal(predicateName, !isNegative);
+        return new Literal(predicateName, !isNegative, terms);
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(isNegative, predicateName);
+        return Objects.hash(isNegative, predicateName, terms);
     }
 
     //equal one another if they both have the same predicate name and both are negated or not
@@ -218,7 +318,7 @@ class Literal{
             return false;
         } else{
             Literal other = (Literal) o;
-            if (isNegative == other.isNegative && predicateName.equals(other.predicateName)){
+            if (isNegative == other.isNegative && predicateName.equals(other.predicateName) && terms.equals(other.terms)){
                 return true;
             }
             return false;
@@ -229,9 +329,9 @@ class Literal{
     @Override
     public String toString(){
         if(isNegative){
-            return "!"+predicateName;
+            return "!"+predicateName +" "+terms;
         }
-        return predicateName;
+        return predicateName + " "+terms;
     }
 }
 
@@ -333,3 +433,7 @@ class Term{
         return name.hashCode() + Boolean.hashCode(isVariable) + Boolean.hashCode(isFunction) + Boolean.hashCode(isConstant) + functionArgs.hashCode();
     }
 }
+
+
+
+
