@@ -65,11 +65,49 @@ public class lab2 {
                         Set<Literal> literals = new HashSet<>();
                         for (String s : temp) {
                             Literal l;
-                            if (s.contains("!")) {
-                                l = new Literal(s.substring(1), true);
-                            } else {
-                                l = new Literal(s, false);
+                            String name;
+                            String inner;
+                            boolean isNegated = false;
+
+                            //negstive literal
+                            if (s.startsWith("!")) {
+                                isNegated = true;
+
+                                //function
+                                if(s.contains("(")){
+                                    name = s.substring(1, s.indexOf(s.indexOf("(")));
+                                    inner = s.substring(s.indexOf(s.indexOf("(")));
+                                    List<String> funcArgs = splitter(inner);
+                                    List<Term> t = new ArrayList<>();
+                                    for (String funcArg : funcArgs) {
+                                        t.add(toTerm(funcArg, variables, constants, functions));
+                                    }
+                                    l = new Literal(name, true, t);
+                                }
+                                else{
+                                    l = new Literal(s.substring(1), true);
+                                }
                             }
+
+                            //non negative
+                            else{
+
+                                //functoin
+                                if(s.contains("(")){
+                                    name = s.substring(1, s.indexOf(s.indexOf("(")));
+                                    inner = s.substring(s.indexOf(s.indexOf("(")));
+                                    List<String> funcArgs = splitter(inner);
+                                    List<Term> t = new ArrayList<>();
+                                    for (String funcArg : funcArgs) {
+                                        t.add(toTerm(funcArg, variables, constants, functions));
+                                    }
+                                    l = new Literal(name, false, t);
+                                } else{
+                                    l = new Literal(s, false);
+                                }
+                            }
+
+
                             literals.add(l);
                         }
                         clauses.add(new Clause(literals));
@@ -81,13 +119,6 @@ public class lab2 {
                 }
 
             }
-
-//            System.out.println(predicates);
-//            System.out.println(constants);
-//            System.out.println(variables);
-//            System.out.println(functions);
-//            System.out.println(clauses);
-
 
 
             //this resolves each clause to see if the KB is satisfieble or not.
@@ -131,16 +162,10 @@ public class lab2 {
                 }
             }
 
-
-
-
         } catch(IOException e) {
             e.printStackTrace();
             System.err.println("Error reading file");
         }
-
-
-
 
 
     }
@@ -183,28 +208,6 @@ public class lab2 {
 
         return clauses;
     }
-
-
-
-    /*
-    /// takes a clause and turns each item into a list of terms
-    ///@param cl: clause to parse
-    ///@return a list of each term
-    public List<Term> clauseToTerm(Clause cl){
-        for( Literal l : cl.literalSet){
-            //String[] litStrings = l.toString().split(" ");
-            //String[] temp = line.trim().split("\\s+");
-
-            //checks if there's something like dog(x)
-            if(l.predicateName.contains("(")){
-
-            }
-
-        }
-
-        return null;
-    }
-    */
 
 
 
