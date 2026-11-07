@@ -12,6 +12,9 @@ import java.util.*;
 import static java.lang.System.in;
 
 public class lab2 {
+
+    static int variableCounter = 0; //this is used for when I rename variables for unification
+
     public static void main(String[] args) {
         String file = args[0];
         ArrayList<String> predicates = new ArrayList<String>();
@@ -75,8 +78,8 @@ public class lab2 {
 
                                 //function
                                 if(s.contains("(")){
-                                    name = s.substring(1, s.indexOf(s.indexOf("(")));
-                                    inner = s.substring(s.indexOf(s.indexOf("(")));
+                                    name = s.substring(1, s.indexOf("("));
+                                    inner = s.substring(s.indexOf("(")+1, s.lastIndexOf(")"));
                                     List<String> funcArgs = splitter(inner);
                                     List<Term> t = new ArrayList<>();
                                     for (String funcArg : funcArgs) {
@@ -94,8 +97,8 @@ public class lab2 {
 
                                 //functoin
                                 if(s.contains("(")){
-                                    name = s.substring(1, s.indexOf(s.indexOf("(")));
-                                    inner = s.substring(s.indexOf(s.indexOf("(")));
+                                    name = s.substring(0, s.indexOf("("));
+                                    inner = s.substring(s.indexOf("(")+1, s.lastIndexOf(")"));
                                     List<String> funcArgs = splitter(inner);
                                     List<Term> t = new ArrayList<>();
                                     for (String funcArg : funcArgs) {
@@ -110,7 +113,12 @@ public class lab2 {
 
                             literals.add(l);
                         }
-                        clauses.add(new Clause(literals));
+                        //clauses.add(new Clause(literals));
+                        Clause normalClause = normalize(new Clause(literals));
+                        if(!clauseSet.contains(normalClause)){
+                            clauses.add(normalClause);
+                            clauseSet.add(normalClause);
+                        }
                     }
                 }
 
@@ -138,12 +146,20 @@ public class lab2 {
 
                                 //if clause hasnt been found before it gets added
                             } else {
+                                Clause n=normalize(r);
+                                if(!clauseSet.contains(n)){
+                                    newClauses.add(n);
+                                    clauseSet.add(n);
+                                }
+                                /* old code
                                 for (Clause c1 : c) {
                                     if (!clauseSet.contains(c1)) {
                                         clauseSet.add(c1);
                                         newClauses.add(c1);
                                     }
                                 }
+
+                                 */
                             }
                         }
                     }
@@ -178,7 +194,40 @@ public class lab2 {
     public static ArrayList<Clause> resolve(Clause c1, Clause c2) {
 
         ArrayList<Clause> clauses = new ArrayList<>();
+        Clause a = standardize(c1);
+        Clause b = standardize(c2);
 
+        //unifies literals from both
+        for(Literal l1: a.literalSet){
+            for(Literal l2: b.literalSet){
+                Map<Term, Term> litMap= literalUnifier(l1, l2);
+                if(litMap == null){
+                    continue;
+                }
+                Set<Literal> remaining = new HashSet<>();
+                for(Literal l: a.literalSet){
+                    if(!l.equals(l1)){
+                        remaining.add(l);
+                    }
+                }
+                for (Literal l: b.literalSet){
+                    if(!l.equals(l2)){
+                        remaining.add(l);
+                    }
+                }
+
+                Clause c = clauseSub(new Clause(remaining), litMap);
+                if(!c.isTautology()){
+                    clauses.add(c);
+                }
+
+            }
+        }
+
+
+
+
+        /* this is code that was used for just prop and constants
         //checks if the negation of each literal in c1 is in c2
         //and adds a new clause to clauses each time
         for( Literal l : c1.literalSet){
@@ -205,6 +254,7 @@ public class lab2 {
             }
         }
 
+         */
 
         return clauses;
     }
@@ -347,7 +397,6 @@ public class lab2 {
 
 
 
-
     /// this function takes a clause and splits along it's commas so that
     /// something like loves(SKF0(x2),x2) has each part as it's own thing
     /// //or just splits up a literal like dog(x) into each component
@@ -411,7 +460,179 @@ public class lab2 {
 
     }
 
-} //END OF MAIN METHOD/CLASS
+
+    /// substitues terms so that something like x is subbed with Kim
+    /// @param t: the term
+    /// @param substitutionMap: the map pairing for t
+    /// @return: the term t is paired to
+    public static Term termSub(Term t, Map<Term, Term> substitutionMap){
+        if(t.isConstant){
+            return t;
+        }
+        if(t.isVariable){
+            if(substitutionMap.containsKey(t)){
+                return termSub(substitutionMap.get(t), substitutionMap);
+            }
+        }
+
+        if(t.isFunction){
+            List<Term> newArgs = new ArrayList<>();
+            for(Term arg : t.functionArgs){
+                newArgs.add(termSub(arg, substitutionMap));
+            }
+            return new Term(t.name, false, true, false, newArgs);
+        }
+        return t;
+    }
+
+    /// substitues literal items
+    /// @param l: the literal being subebed
+    /// @param substitutionMap: the map with the pairing
+    /// @return: the literal that l is paried with
+    public static Literal literalSub(Literal l, Map<Term, Term> substitutionMap){
+        List<Term> newTerms = new ArrayList<>();
+        for(Term t: l.terms){
+            newTerms.add(termSub(t, substitutionMap));
+        }
+
+        return new Literal(l.predicateName, l.isNegative, newTerms);
+    }
+
+    /// substitues clause objects
+    /// @param c: the clause
+    /// @param substitutionMap: the subsitutuon map
+    /// @return: new clause with it being substitued
+    public static Clause clauseSub(Clause c, Map<Term, Term> substitutionMap){
+        Set<Literal> newLiterals = new HashSet<>();
+        for(Literal l: c.literalSet){
+            List<Term> newTerms = new ArrayList<>();
+            for(Term t: l.terms){
+                newTerms.add(termSub(t, substitutionMap));
+            }
+            newLiterals.add(new Literal(l.predicateName, l.isNegative, newTerms));
+        }
+        return new Clause(newLiterals);
+    }
+
+
+    /// this method takes a term and finds every variable in it. Used later so that variables are renamed for unifciations
+    public static void varCollector(Term t, Set<Term> found){
+        if(t.isVariable){
+            found.add(t);
+        } else if(t.isFunction){
+            for(Term arg: t.functionArgs){
+                varCollector(arg, found);
+            }
+        }
+    }
+
+    /// standardizes variables so that an x1 in one clause is different
+    /// to an x1 in another clause
+    public static Clause standardize(Clause c){
+
+        //adds each variable to the vars list
+        Set<Term> vars = new LinkedHashSet<>();
+        for(Literal l: c.literalSet){
+            for(Term t: l.terms){
+                varCollector(t, vars);
+            }
+        }
+
+        //renames each variable
+        Map<Term, Term> rename = new LinkedHashMap<>();
+        for(Term t: vars){
+            variableCounter++;
+            Term newVar = new Term("v"+variableCounter, true, false, false, new ArrayList<>());
+            rename.put(t, newVar);
+        }
+
+        return clauseSub(c, rename);
+
+    }
+
+
+    /// this takes a variable which might be different in two clauses (eg x1-->v2 and x1-->v3) and makes them the same
+    /// @param c: clause to normalize
+    /// @return: normalized clause
+    public static Clause normalize(Clause c){
+
+        List<Literal> literals = new ArrayList<>();
+        for(Literal l: c.literalSet){
+            literals.add(l);
+        }
+
+        //a map of every literal and it's string version
+        Map<Literal, String> litString = new HashMap<>();
+
+        //this turns everything into a string, ignoring variable names to make it so that you can order
+        //them and noralize easily
+        for(Literal l: literals){
+            String text="";
+            if(l.isNegative){
+                text+="-";
+            }
+            text+=l.predicateName;
+
+            //variables replaced with "@" so that theyre ignored
+            for(Term t: l.terms){
+                if(t.isVariable){
+                    text+="@";
+                }
+                else if(t.isConstant){
+                    text+=t.name;
+                } else{
+                    text=text+t.name+"(";
+                    for(Term funcArg: t.functionArgs){
+                        if(funcArg.isVariable){
+                            text+="@";
+                        } else{
+                            text+=funcArg.name;
+                        }
+                        text+=",";
+                    }
+                    text+=")";
+                }
+                text+=",";
+            }
+            text+=")";
+            litString.put(l, text);
+        }
+
+
+        literals.sort(new Comparator<Literal>() {
+            @Override
+            public int compare(Literal o1, Literal o2) {
+                int comp=litString.get(o1).compareTo(litString.get(o2));
+                if(comp!=0){
+                    return comp;
+                }
+                return o1.toString().compareTo(o2.toString());
+            }
+        });
+
+
+        //this collects each variable in the sorted order
+        Set<Term> vars = new LinkedHashSet<>();
+        for(Literal l: literals){
+            for(Term t: l.terms){
+                varCollector(t, vars);
+            }
+        }
+
+        //turns everything into the normalized form
+        Map<Term, Term> rename = new LinkedHashMap<>();
+        int normalizedCounter=0;
+            for(Term t: vars){
+                rename.put(t, new Term("$"+normalizedCounter, true, false, false, new ArrayList<>()));
+                normalizedCounter++;
+            }
+
+
+
+        return clauseSub(c, rename);
+    }
+
+} //END OF LAB2 CLASS
 
 
 
